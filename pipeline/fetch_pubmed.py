@@ -118,8 +118,13 @@ def main():
     ids = esearch_ids(args.query, mindate, maxdate, args.esearch_batch)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    seen_pmids = set()
     with output_path.open("w", encoding="utf-8") as fh:
         for record in efetch_records(ids, args.efetch_batch):
+            pmid = record.get("pmid")
+            if not pmid or pmid in seen_pmids:
+                continue
+            seen_pmids.add(pmid)
             fh.write(json.dumps(record) + "\n")
 
 
