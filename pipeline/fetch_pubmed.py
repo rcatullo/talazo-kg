@@ -4,7 +4,7 @@ import json
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
 
 import requests
 
@@ -16,16 +16,24 @@ def chunked(seq: List[str], size: int) -> Iterable[List[str]]:
         yield seq[i : i + size]
 
 
-def esearch_ids(query: str, mindate: str, maxdate: str, batch_size: int) -> List[str]:
+def esearch_ids(query: str, mindate: str, maxdate: str, batch_size: int, max_articles: Optional[int] = None) -> List[str]:
     ids: List[str] = []
     retstart = 0
     count = None
+    fetched = 0
     while True:
+        # If max_articles is set, do not request beyond that limit
+        curr_batch_size = batch_size
+        if max_articles is not None:
+            remaining = max_articles - fetched
+            if remaining <= 0:
+                break
+            curr_batch_size = min(curr_batch_size, remaining)
         params = {
             "db": "pubmed",
             "term": query,
             "retmode": "xml",
-            "retmax": batch_size,
+            "retmax": curr_batch_size,
             "retstart": retstart,
             "datetype": "pdat",
             "mindate": mindate,
@@ -42,9 +50,14 @@ def esearch_ids(query: str, mindate: str, maxdate: str, batch_size: int) -> List
             break
         ids.extend(batch_ids)
         retstart += len(batch_ids)
+        fetched += len(batch_ids)
         if retstart >= count:
             break
+        if max_articles is not None and fetched >= max_articles:
+            break
         time.sleep(0.34)
+    if max_articles is not None:
+        ids = ids[:max_articles]
     return ids
 
 
@@ -85,8 +98,14 @@ def parse_article(article: ET.Element) -> Dict[str, object]:
     }
 
 
-def efetch_records(ids: List[str], batch_size: int) -> Iterable[dict]:
+def efetch_records(ids: List[str], batch_size: int, max_records: Optional[int] = None) -> Iterable[dict]:
+    yielded = 0
     for batch in chunked(ids, batch_size):
+        if max_records is not None:
+            remaining = max_records - yielded
+            if remaining <= 0:
+                break
+            batch = batch[:remaining]
         params = {
             "db": "pubmed",
             "retmode": "xml",
@@ -97,7 +116,12 @@ def efetch_records(ids: List[str], batch_size: int) -> Iterable[dict]:
         resp.raise_for_status()
         root = ET.fromstring(resp.content)
         for article in root.findall(".//PubmedArticle"):
+            if max_records is not None and yielded >= max_records:
+                break
             yield parse_article(article)
+            yielded += 1
+        if max_records is not None and yielded >= max_records:
+            break
         time.sleep(0.34)
 
 
@@ -108,6 +132,7 @@ def main():
     parser.add_argument("--esearch-batch", type=int, default=100)
     parser.add_argument("--efetch-batch", type=int, default=20)
     parser.add_argument("--output", default="data/pubmed_talazoparib.jsonl")
+    parser.add_argument("--max-articles", type=int, default=None, help="Maximum number of PubMed articles to fetch")
     args = parser.parse_args()
 
     today = dt.date.today()
@@ -115,17 +140,21 @@ def main():
     mindate = start_date.strftime("%Y/%m/%d")
     maxdate = today.strftime("%Y/%m/%d")
 
-    ids = esearch_ids(args.query, mindate, maxdate, args.esearch_batch)
+    ids = esearch_ids(args.query, mindate, maxdate, args.esearch_batch, args.max_articles)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     seen_pmids = set()
+    num_written = 0
     with output_path.open("w", encoding="utf-8") as fh:
-        for record in efetch_records(ids, args.efetch_batch):
+        for record in efetch_records(ids, args.efetch_batch, args.max_articles):
             pmid = record.get("pmid")
             if not pmid or pmid in seen_pmids:
                 continue
             seen_pmids.add(pmid)
             fh.write(json.dumps(record) + "\n")
+            num_written += 1
+            if args.max_articles is not None and num_written >= args.max_articles:
+                break
 
 
 if __name__ == "__main__":
