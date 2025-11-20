@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 from pipeline.schema.loader import Predicate, SchemaLoader
-from pipeline.utils.utils import Sentence
+from .utils import Sentence
 
 
 @dataclass

@@ -1,8 +1,6 @@
 import logging
-import os
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 if __package__ is None or __package__ == "":
     ROOT = Path(__file__).resolve().parents[1]
@@ -10,12 +8,11 @@ if __package__ is None or __package__ == "":
         sys.path.append(str(ROOT))
 
 from pipeline.model.llm_client import LLMClient
-from pipeline.utils.pairing import PairGenerator
 from pipeline.named_entity_recognition import NamedEntityRecognition
 from pipeline.relation_extraction import RelationExtraction
-from pipeline.schema.loader import SchemaLoader
-from pipeline.schema.normalizer import Normalizer
-from pipeline.utils.utils import ensure_dir, load_config, write_jsonl, PostProcessor, log_result, Sentence, load_sentences
+from pipeline.schema import SchemaLoader, Normalizer
+import pipeline.utils as utils
+from pipeline.utils import PostProcessor, PairGenerator
 
 PIPELINE_DIR = Path(__file__).resolve().parent
 PIPELINE_LOG_FILE = PIPELINE_DIR / "logs" / "pipeline.log"
@@ -24,7 +21,7 @@ logger = logging.getLogger("pipeline.run")
 
 
 def configure_logging(log_level: str) -> None:
-    ensure_dir(PIPELINE_LOG_FILE)
+    utils.ensure_dir(PIPELINE_LOG_FILE)
     root = logging.getLogger()
     for handler in list(root.handlers):
         root.removeHandler(handler)
@@ -51,7 +48,7 @@ def log_stage(stage: str, **details) -> None:
 
 
 def build_components():
-    config = load_config()
+    config = utils.load_config()
     schema = SchemaLoader()
     llm = LLMClient(config=config)
     normalizer = Normalizer(schema)
@@ -63,7 +60,7 @@ def build_components():
 
 
 def main():
-    config = load_config()
+    config = utils.load_config()
     configure_logging(config["logging"]["level"])
 
     log_stage("build_components")
@@ -83,7 +80,7 @@ def main():
         log_path,
     )
 
-    sentences = list(load_sentences(input_path))
+    sentences = list(utils.load_sentences(input_path))
     log_stage("entity_queue", sentences=len(sentences))
     ner.add_sentences(sentences)
     log_stage("entity_execute", sentences=ner.total_sentences)
@@ -126,7 +123,7 @@ def main():
 
     log_stage("relation_execute", total_pairs=re.total_pairs)
     for classification in re.run():
-        log_result(classification, log_path)
+        utils.log_result(classification, log_path)
         raw_results.append(classification)
 
     postprocessor.threshold = config["relation_extraction"]["threshold"]
@@ -135,7 +132,7 @@ def main():
     log_stage("postprocess_aggregate", filtered=len(filtered))
     aggregated = postprocessor.aggregate(filtered)
     log_stage("write_output", aggregated=len(aggregated), output=config["paths"]["output"])
-    write_jsonl(Path(config["paths"]["output"]), aggregated)
+    utils.write_jsonl(Path(config["paths"]["output"]), aggregated)
     logger.info(
         "Finished: sentences=%d edges=%d filtered=%d aggregated=%d",
         sentence_count,

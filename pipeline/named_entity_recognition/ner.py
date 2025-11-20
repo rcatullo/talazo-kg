@@ -10,7 +10,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 from pipeline.model.llm_client import LLMClient
 from pipeline.schema import SchemaLoader, Normalizer
 from pipeline.utils.api_req_parallel import process_api_requests_from_file
-from pipeline.utils.utils import ensure_dir, Sentence
+from pipeline.utils import ensure_dir, Sentence
 
 PIPELINE_DIR = Path(__file__).resolve().parent.parent
 NER_REQUESTS_FILE = PIPELINE_DIR / "named_entity_recognition" / "tmp" / "requests.jsonl"
@@ -62,13 +62,13 @@ class NamedEntityRecognition:
         }
         self._requests_handle.write(json.dumps(payload) + "\n")
     
-    def _build_prompt(self, sentence: Sentence) -> None:
+    def _build_prompt(self, sentence: Sentence) -> str:
         class_list = ", ".join(self.classes)
         return (
-            "Identify biomedical entities for the sentence below (if any). If the entity doesn't fit confidently into one of the given classes, even if it is biomedical in nature, omt it.\n"
+            "Identify biomedical entities for the sentence below (if any). If the entity doesn't fit confidently into one of the given classes, even if it is biomedical in nature, omit it.\n"
             f"Classes: {class_list}.\n"
             "Return JSON with `entities`: [{text,class,start,end,ids}].\n"
-            f"Sentences JSON:\n{sentence.text}"
+            f"Sentence: {sentence.text}"
         )
 
     def run(self) -> Dict[Tuple[str, int], List[Dict]]:

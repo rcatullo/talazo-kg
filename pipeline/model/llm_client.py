@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from openai import OpenAI
 
-from pipeline.utils.utils import load_config
+from pipeline.utils import load_config
 
 logger = logging.getLogger(__name__)
 

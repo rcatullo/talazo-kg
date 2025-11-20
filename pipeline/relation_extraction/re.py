@@ -8,9 +8,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from pipeline.model.llm_client import LLMClient
-from pipeline.utils.pairing import CandidatePair
 from pipeline.utils.api_req_parallel import process_api_requests_from_file
-from pipeline.utils.utils import ensure_dir, timestamp
+from pipeline.utils import ensure_dir, timestamp, CandidatePair
 
 PIPELINE_DIR = Path(__file__).resolve().parent.parent
 RELATION_REQUESTS_FILE = PIPELINE_DIR / "relation_extraction" / "tmp" / "requests.jsonl"
