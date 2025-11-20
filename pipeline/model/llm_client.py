@@ -6,14 +6,12 @@ from typing import Any, Dict, Optional
 
 from openai import OpenAI
 
-from pipeline.utils import load_config
-
 logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        self.config = config or load_config()
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
         self.client = OpenAI()
 
     def build_chat_completion_kwargs(

@@ -108,7 +108,7 @@ class RelationExtraction:
                 max_tokens_per_minute=float(self.config["llm"]["max_tokens_per_minute"]),
                 token_encoding_name=self.config["llm"]["token_encoding_name"],
                 max_attempts=int(self.config["relation_extraction"]["max_attempts"]),
-                logging_level=int(self.config["relation_extraction"]["logging_level"]),
+                logging_level=int(self.config["logging"]["logging_level"]),
             )
         )
         return self._read_results()

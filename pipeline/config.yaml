@@ -5,19 +5,20 @@ llm:
   request_url: "https://api.openai.com/v1/chat/completions"
   token_encoding_name: "cl100k_base"
 
-paths:
-  input: "data/pubmed_talazoparib.jsonl"
-  output: "data/relations.jsonl"
-  log: "logs/relation_log.jsonl"
+data:
+  input_file: "data/pubmed_talazoparib.jsonl"
+  output_file: "data/relations.jsonl"
 
 logging:
   level: "INFO"
+  log_file: "logs/pipeline.log"
+  relation_log_file: "logs/relation_log.jsonl"
+  logging_level: 20
+
 
 relation_extraction:
   max_attempts: 5
-  logging_level: 20
   threshold: 0.55
 
 named_entity_recognition:
   max_attempts: 5
-  logging_level: 20

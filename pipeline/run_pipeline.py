@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
 if __package__ is None or __package__ == "":
     ROOT = Path(__file__).resolve().parents[1]
@@ -14,27 +15,25 @@ from pipeline.schema import SchemaLoader, Normalizer
 import pipeline.utils as utils
 from pipeline.utils import PostProcessor, PairGenerator
 
-PIPELINE_DIR = Path(__file__).resolve().parent
-PIPELINE_LOG_FILE = PIPELINE_DIR / "logs" / "pipeline.log"
-
 logger = logging.getLogger("pipeline.run")
 
 
-def configure_logging(log_level: str) -> None:
-    utils.ensure_dir(PIPELINE_LOG_FILE)
+def configure_logging(config: Dict[str, Any]) -> None:
+    log_path = Path(config["logging"]["log_file"])
+    utils.ensure_dir(log_path)
     root = logging.getLogger()
     for handler in list(root.handlers):
         root.removeHandler(handler)
     root.setLevel(logging.DEBUG)
     formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-    file_handler = logging.FileHandler(PIPELINE_LOG_FILE, encoding="utf-8")
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    console_handler.setLevel(getattr(logging, config["logging"]["level"].upper(), logging.INFO))
     console_handler.setFormatter(formatter)
     root.addHandler(console_handler)
 
@@ -61,13 +60,13 @@ def build_components():
 
 def main():
     config = utils.load_config()
-    configure_logging(config["logging"]["level"])
+    configure_logging(config)
 
     log_stage("build_components")
     ner, pair_generator, re, postprocessor = build_components()
     log_stage("build_components_complete")
-    input_path = Path(config["paths"]["input"])
-    log_path = Path(config["paths"]["log"])
+    input_path = Path(config["data"]["input_file"])
+    relation_log_path = Path(config["logging"]["relation_log_file"])
     raw_results = []
     sentence_count = 0
     entity_total = 0
@@ -76,8 +75,8 @@ def main():
     logger.info(
         "Starting pipeline input=%s output=%s log=%s",
         input_path,
-        config["paths"]["output"],
-        log_path,
+        config["data"]["output_file"],
+        relation_log_path,
     )
 
     sentences = list(utils.load_sentences(input_path))
@@ -123,7 +122,7 @@ def main():
 
     log_stage("relation_execute", total_pairs=re.total_pairs)
     for classification in re.run():
-        utils.log_result(classification, log_path)
+        utils.log_result(classification, relation_log_path)
         raw_results.append(classification)
 
     postprocessor.threshold = config["relation_extraction"]["threshold"]
@@ -131,8 +130,8 @@ def main():
     filtered = postprocessor.filter(raw_results)
     log_stage("postprocess_aggregate", filtered=len(filtered))
     aggregated = postprocessor.aggregate(filtered)
-    log_stage("write_output", aggregated=len(aggregated), output=config["paths"]["output"])
-    utils.write_jsonl(Path(config["paths"]["output"]), aggregated)
+    log_stage("write_output", aggregated=len(aggregated), output=config["data"]["output_file"])
+    utils.write_jsonl(Path(config["data"]["output_file"]), aggregated)
     logger.info(
         "Finished: sentences=%d edges=%d filtered=%d aggregated=%d",
         sentence_count,

@@ -99,7 +99,7 @@ class NamedEntityRecognition:
                 max_tokens_per_minute=float(self.config["llm"]["max_tokens_per_minute"]),
                 token_encoding_name=self.config["llm"]["token_encoding_name"],
                 max_attempts=int(self.config["named_entity_recognition"]["max_attempts"]),
-                logging_level=int(self.config["named_entity_recognition"]["logging_level"]),
+                logging_level=int(self.config["logging"]["logging_level"]),
             )
         )
         return self._collect_entities()

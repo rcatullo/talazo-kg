@@ -25,13 +25,18 @@ def load_config() -> Dict[str, Any]:
         else:
             _CONFIG = {}
         # Resolve relative paths
-        if "paths" in _CONFIG:
-            paths = _CONFIG["paths"]
-            for key in ["input", "output", "log"]:
-                if key in paths:
-                    path = Path(paths[key])
-                    if not path.is_absolute():
-                        paths[key] = str(PIPELINE_DIR / path)
+        if "data" in _CONFIG:
+            data = _CONFIG["data"]
+            for key in ["input_file", "output_file"]:
+                path = Path(data[key])
+                if not path.is_absolute():
+                    data[key] = str(PIPELINE_DIR / path)
+        if "logging" in _CONFIG:
+            logging = _CONFIG["logging"]
+            for key in ["log_file", "relation_log_file"]:
+                path = Path(logging[key])
+                if not path.is_absolute():
+                    logging[key] = str(PIPELINE_DIR / path)
     return _CONFIG
 
 
