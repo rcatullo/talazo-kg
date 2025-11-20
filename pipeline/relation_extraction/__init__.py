@@ -1,5 +1,4 @@
-from .relation_extractor import RelationExtractor
-from .utils import RelationExtractionRunner
+from .re import RelationExtraction
 
-__all__ = ["RelationExtractor", "RelationExtractionRunner"]
+__all__ = ["RelationExtraction"]
 

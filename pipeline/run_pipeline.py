@@ -12,10 +12,7 @@ if __package__ is None or __package__ == "":
 from pipeline.model.llm_client import LLMClient
 from pipeline.utils.pairing import PairGenerator
 from pipeline.named_entity_recognition import NamedEntityRecognition
-from pipeline.relation_extraction import (
-    RelationExtractionRunner,
-    RelationExtractor,
-)
+from pipeline.relation_extraction import RelationExtraction
 from pipeline.schema.loader import SchemaLoader
 from pipeline.schema.normalizer import Normalizer
 from pipeline.utils.utils import ensure_dir, load_config, write_jsonl, PostProcessor, log_result, Sentence, load_sentences
@@ -60,9 +57,9 @@ def build_components():
     normalizer = Normalizer(schema)
     ner = NamedEntityRecognition(schema, normalizer, llm, config)
     pair_generator = PairGenerator(schema)
-    relation_extractor = RelationExtractor(schema, llm, config)
+    re = RelationExtraction(llm, config)
     postprocessor = PostProcessor()
-    return ner, pair_generator, relation_extractor, postprocessor
+    return ner, pair_generator, re, postprocessor
 
 
 def main():
@@ -70,7 +67,7 @@ def main():
     configure_logging(config["logging"]["level"])
 
     log_stage("build_components")
-    ner, pair_generator, relation_extractor, postprocessor = build_components()
+    ner, pair_generator, re, postprocessor = build_components()
     log_stage("build_components_complete")
     input_path = Path(config["paths"]["input"])
     log_path = Path(config["paths"]["log"])
@@ -84,12 +81,6 @@ def main():
         input_path,
         config["paths"]["output"],
         log_path,
-    )
-
-    relation_runner = RelationExtractionRunner(
-        extractor=relation_extractor,
-        llm_client=relation_extractor.llm,
-        config=config,
     )
 
     sentences = list(load_sentences(input_path))
@@ -124,7 +115,7 @@ def main():
             sentence_id=sentence.sentence_id,
             pair_count=len(pairs),
         )
-        relation_runner.add_pairs(pairs)
+        re.add_pairs(pairs)
         if sentence_count and sentence_count % 50 == 0:
             logger.info(
                 "Processed %d sentences (%d entities, %d pairs so far)",
@@ -133,8 +124,8 @@ def main():
                 pair_total,
             )
 
-    log_stage("relation_execute", total_pairs=relation_runner.total_pairs)
-    for classification in relation_runner.run():
+    log_stage("relation_execute", total_pairs=re.total_pairs)
+    for classification in re.run():
         log_result(classification, log_path)
         raw_results.append(classification)
 

@@ -9,7 +9,6 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from pipeline.model.llm_client import LLMClient
 from pipeline.utils.pairing import CandidatePair
-from pipeline.relation_extraction.relation_extractor import RelationExtractor
 from pipeline.utils.api_req_parallel import process_api_requests_from_file
 from pipeline.utils.utils import ensure_dir, timestamp
 
@@ -20,14 +19,12 @@ RELATION_RESULTS_FILE = PIPELINE_DIR / "relation_extraction" / "tmp" / "results.
 logger = logging.getLogger(__name__)
 
 
-class RelationExtractionRunner:
+class RelationExtraction:
     def __init__(
         self,
-        extractor: RelationExtractor,
         llm_client: LLMClient,
         config: Dict[str, Any],
     ) -> None:
-        self.extractor = extractor
         self.llm = llm_client
         self.config = config
         self.total_pairs = 0
@@ -39,6 +36,22 @@ class RelationExtractionRunner:
         if RELATION_REQUESTS_FILE.exists():
             RELATION_REQUESTS_FILE.unlink()
         self._requests_handle = RELATION_REQUESTS_FILE.open("w", encoding="utf-8")
+    
+    def _build_prompt(self, pair: CandidatePair) -> str:
+        subject = pair.subject.get("text")
+        obj = pair.obj.get("text")
+        allowed = "\n".join(
+            f"- {pred.name}: {pred.description[:140]}"
+            for pred in pair.predicates
+        )
+        sentence = pair.sentence.replace(subject, f"[SUBJ]{subject}[/SUBJ]", 1)
+        sentence = sentence.replace(obj, f"[OBJ]{obj}[/OBJ]", 1)
+        return (
+            "Determine which predicate (if any) fits the sentence and give a concise explanation.\n"
+            f"Sentence: {sentence}\n"
+            f"Allowed predicates:\n{allowed}\n"
+            "Respond as JSON {predicate: str, confidence: float, explanation: str}."
+        )
 
     def add_pairs(self, pairs: Iterable[CandidatePair]) -> None:
         if not pairs:
@@ -46,7 +59,7 @@ class RelationExtractionRunner:
         if self._requests_handle is None:
             self._prepare_request_file()
         for pair in pairs:
-            prompt = self.extractor.build_prompt(pair)
+            prompt = self._build_prompt(pair)
             payload = self.llm.build_chat_completion_kwargs(
                 prompt=prompt,
                 json_mode=True,
@@ -63,9 +76,9 @@ class RelationExtractionRunner:
             "subject": pair.subject,
             "object": pair.obj,
             "predicate_names": [pred.name for pred in pair.predicates],
-            "model_name": self.extractor.config["llm"]["model"],
-            "model_version": self.extractor.config.get("model_version", "v1"),
-            "prompt_version": self.extractor.config.get("prompt_version", "v1"),
+            "model_name": self.config["llm"]["model"],
+            "model_version": self.config.get("model_version", "v1"),
+            "prompt_version": self.config.get("prompt_version", "v1"),
         }
 
     def run(self) -> List[Dict]:
