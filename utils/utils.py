@@ -9,8 +9,8 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 import yaml
 
-PIPELINE_DIR = Path(__file__).resolve().parent.parent
-CONFIG_PATH = PIPELINE_DIR / "config.yaml"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+CONFIG_PATH = ROOT_DIR / "config.yaml"
 
 _CONFIG: Dict[str, Any] | None = None
 
@@ -30,13 +30,13 @@ def load_config() -> Dict[str, Any]:
             for key in ["input_file", "output_file"]:
                 path = Path(data[key])
                 if not path.is_absolute():
-                    data[key] = str(PIPELINE_DIR / path)
+                    data[key] = str(ROOT_DIR / path)
         if "logging" in _CONFIG:
             logging = _CONFIG["logging"]
             for key in ["log_file", "relation_log_file"]:
                 path = Path(logging[key])
                 if not path.is_absolute():
-                    logging[key] = str(PIPELINE_DIR / path)
+                    logging[key] = str(ROOT_DIR / path)
     return _CONFIG
 
 

@@ -7,13 +7,13 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from pipeline.model.llm_client import LLMClient
-from pipeline.utils.api_req_parallel import process_api_requests_from_file
-from pipeline.utils import ensure_dir, timestamp, CandidatePair
+from model.llm_client import LLMClient
+from utils.api_req_parallel import process_api_requests_from_file
+from utils import ensure_dir, timestamp, CandidatePair
 
-PIPELINE_DIR = Path(__file__).resolve().parent.parent
-RELATION_REQUESTS_FILE = PIPELINE_DIR / "relation_extraction" / "tmp" / "requests.jsonl"
-RELATION_RESULTS_FILE = PIPELINE_DIR / "relation_extraction" / "tmp" / "results.jsonl"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+RELATION_REQUESTS_FILE = ROOT_DIR / "relation_extraction" / "tmp" / "requests.jsonl"
+RELATION_RESULTS_FILE = ROOT_DIR / "relation_extraction" / "tmp" / "results.jsonl"
 
 logger = logging.getLogger(__name__)
 

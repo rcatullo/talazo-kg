@@ -7,14 +7,14 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
 
-from pipeline.model.llm_client import LLMClient
-from pipeline.schema import SchemaLoader, Normalizer
-from pipeline.utils.api_req_parallel import process_api_requests_from_file
-from pipeline.utils import ensure_dir, Sentence
+from model.llm_client import LLMClient
+from schema import SchemaLoader, Normalizer
+from utils.api_req_parallel import process_api_requests_from_file
+from utils import ensure_dir, Sentence
 
-PIPELINE_DIR = Path(__file__).resolve().parent.parent
-NER_REQUESTS_FILE = PIPELINE_DIR / "named_entity_recognition" / "tmp" / "requests.jsonl"
-NER_RESULTS_FILE = PIPELINE_DIR / "named_entity_recognition" / "tmp" / "results.jsonl"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+NER_REQUESTS_FILE = ROOT_DIR / "named_entity_recognition" / "tmp" / "requests.jsonl"
+NER_RESULTS_FILE = ROOT_DIR / "named_entity_recognition" / "tmp" / "results.jsonl"
 
 logger = logging.getLogger(__name__)
 

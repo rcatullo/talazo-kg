@@ -4,16 +4,16 @@ from pathlib import Path
 from typing import Any, Dict
 
 if __package__ is None or __package__ == "":
-    ROOT = Path(__file__).resolve().parents[1]
+    ROOT = Path(__file__).resolve().parent
     if str(ROOT) not in sys.path:
         sys.path.append(str(ROOT))
 
-from pipeline.model.llm_client import LLMClient
-from pipeline.named_entity_recognition import NamedEntityRecognition
-from pipeline.relation_extraction import RelationExtraction
-from pipeline.schema import SchemaLoader, Normalizer
-import pipeline.utils as utils
-from pipeline.utils import PostProcessor, PairGenerator
+from model.llm_client import LLMClient
+from named_entity_recognition import NamedEntityRecognition
+from relation_extraction import RelationExtraction
+from schema import SchemaLoader, Normalizer
+import utils as utils
+from utils import PostProcessor, PairGenerator
 
 logger = logging.getLogger("pipeline.run")
 
